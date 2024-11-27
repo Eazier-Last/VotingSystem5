@@ -1,11 +1,11 @@
 import React, { useState, useContext, useEffect, useRef } from "react";
 import "../App.css";
-import { StateContext } from "../StateProvider";
+// import { StateContext } from "../StateProvider";
 import { Gauge, gaugeClasses } from "@mui/x-charts/Gauge";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { supabase } from "./client";
 import AvatarComponent from "./Avatar/AvatarComponent";
-import Box from "@mui/material/Box";
+// import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import emailjs from '@emailjs/browser';
@@ -28,16 +28,10 @@ function Home() {
   const [totalVoted, setTotalVoted] = useState(0);
   const [courseData, setCourseData] = useState([]);
   const [orderedPositions, setOrderedPositions] = useState([]);
+  const [studentEmail, setStudentEmail] = useState(""); // To hold the student's email
+  
 
-  // const storedTimerState = JSON.parse(localStorage.getItem("timerState")) || {};
-  // const [time, setTime] = useState(
-  //   storedTimerState.time || { days: 0, hours: 0, minutes: 0, seconds: 0 }
-  // );
-  // const [isRunning, setIsRunning] = useState(
-  //   storedTimerState.isRunning || false
-  // );
-
-  // const intervalRef = useRef(null);
+  
   const [isRunning, setIsRunning] = useState(
     JSON.parse(localStorage.getItem("timerState"))?.isRunning || false
   );
@@ -62,96 +56,61 @@ function Home() {
 
   const form = useRef();
 
-  const sendEmail = (e) => {
-    e.preventDefault();
+  const [allEmails, setAllEmails] = useState([]); // To store all user Gmail addresses
 
-    emailjs
-      .sendForm('service_ffx6rwz', 'template_171uqr7', form.current, {
-        publicKey: 'DFxzih1aS0PB7dD9M',
-      })
-      .then(
-        () => {
-          console.log('SUCCESS!');
-        },
-        (error) => {
-          console.log('FAILED...', error.text);
-        },
-      );
+useEffect(() => {
+  const fetchAllEmails = async () => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("gmail"); // Select only the Gmail column
+
+    if (error) {
+      console.error("Error fetching user emails:", error);
+      setAllEmails([]);
+    } else {
+      const emails = data.map((user) => user.gmail).filter((email) => email); // Ensure no null values
+      setAllEmails(emails);
+    }
   };
 
-  // useEffect(() => {
-  //   if (isRunning) {
-  //     intervalRef.current = setInterval(() => {
-  //       setTime((prevTime) => {
-  //         const totalSeconds =
-  //           prevTime.days * 86400 +
-  //           prevTime.hours * 3600 +
-  //           prevTime.minutes * 60 +
-  //           prevTime.seconds;
+  fetchAllEmails();
+}, []);
 
-  //         if (totalSeconds <= 0) {
-  //           clearInterval(intervalRef.current);
-  //           setIsRunning(false);
-  //           return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-  //         }
 
-  //         const newTotalSeconds = totalSeconds - 1;
+  const sendEmail = async (e) => {
+    e.preventDefault();
+  
+    if (allEmails.length === 0) {
+      alert("No emails found to send.");
+      return;
+    }
+  
+    // Loop through all emails and send the email
+    for (const email of allEmails) {
+      try {
+        await emailjs.send(
+          "service_ffx6rwz", // Replace with your service ID
+          "template_171uqr7", // Replace with your template ID
+          {
+            student_email: email, // Send to each email address
+            subject: form.current.subject.value, // Use form data
+            message: form.current.message.value, // Use form data
+          },
+          "DFxzih1aS0PB7dD9M" // Replace with your public key
+        );
+        console.log(`Email sent successfully to ${email}`);
+      } catch (error) {
+        console.error(`Failed to send email to ${email}:`, error.text);
+      }
+    }
+  
+    alert("Emails have been sent to all users.");
+  };
+  
+  
+  
 
-  //         const newDays = Math.floor(newTotalSeconds / 86400);
-  //         const newHours = Math.floor((newTotalSeconds % 86400) / 3600);
-  //         const newMinutes = Math.floor((newTotalSeconds % 3600) / 60);
-  //         const newSeconds = newTotalSeconds % 60;
 
-  //         return {
-  //           days: newDays,
-  //           hours: newHours,
-  //           minutes: newMinutes,
-  //           seconds: newSeconds,
-  //         };
-  //       });
-  //     }, 1000);
-  //   } else {
-  //     clearInterval(intervalRef.current);
-  //   }
-
-  //   return () => {
-  //     clearInterval(intervalRef.current);
-  //   };
-  // }, [isRunning]);
-
-  // useEffect(() => {
-  //   localStorage.setItem("timerState", JSON.stringify({ time, isRunning }));
-  // }, [time, isRunning]);
-
-  // useEffect(() => {
-  //   const fetchTimerState = async () => {
-  //     const { data, error } = await supabase
-  //       .from("timerState")
-  //       .select("*")
-  //       .single();
-
-  //     if (error) {
-  //       console.error("Error updating timer state (START):", error);
-  //     } else {
-  //       console.log("Timer state updated to START in Supabase", data);
-
-  //       return;
-  //     }
-
-  //     if (data) {
-  //       console.log("Fetched timer state:", data);
-  //       setTime({
-  //         days: data.days,
-  //         hours: data.hours,
-  //         minutes: data.minutes,
-  //         seconds: data.seconds,
-  //       });
-  //       setIsRunning(data.isRunning);
-  //     }
-  //   };
-
-  //   fetchTimerState();
-  // }, []);
   useEffect(() => {
     const fetchTimerState = async () => {
       const { data, error } = await supabase
@@ -214,6 +173,27 @@ function Home() {
   }, []);
 
   useEffect(() => {
+    const fetchUserEmail = async () => {
+      const studentNumber = "12345"; // Replace with the dynamically selected studentNumber
+      const { data, error } = await supabase
+        .from("users")
+        .select("gmail")
+        .eq("studentNumber", studentNumber)
+        .single(); // Single ensures only one result is returned
+  
+      if (error) {
+        console.error("Error fetching user email:", error);
+        setStudentEmail(""); // Clear email if there's an error
+      } else {
+        setStudentEmail(data.gmail); // Set the email dynamically
+      }
+    };
+  
+    fetchUserEmail();
+  }, []);
+  
+
+  useEffect(() => {
     localStorage.setItem("timerState", JSON.stringify({ isRunning }));
   }, [isRunning]);
 
@@ -241,76 +221,7 @@ function Home() {
     }
   };
 
-  // const handleStartStop = async () => {
-  //   try {
-  //     if (isRunning) {
-  //       // Stop the timer and set isRunning to false
-  //       clearInterval(intervalRef.current);
-  //       setIsRunning(false);
 
-  //       // Update the Supabase table when stopping the timer
-  //       const { data, error } = await supabase
-  //         .from("timerState")
-  //         .update({ isRunning: 0 }) // Ensure we're setting isRunning to 0
-  //         .eq("id", 1); // Match the row with id = 1
-
-  //       if (error) {
-  //         throw new Error(error.message || "Error updating timer state (STOP)");
-  //       }
-
-  //       console.log("Timer state updated to STOP in Supabase:", data); // Check data returned
-  //     } else {
-  //       // Start the timer and set isRunning to true
-  //       intervalRef.current = setInterval(() => {
-  //         setTime((prevTime) => {
-  //           const totalSeconds =
-  //             prevTime.hours * 3600 + prevTime.minutes * 60 + prevTime.seconds;
-
-  //           if (totalSeconds <= 0) {
-  //             clearInterval(intervalRef.current);
-  //             setIsRunning(false);
-  //             return { hours: 0, minutes: 0, seconds: 0 };
-  //           }
-
-  //           const newHours = Math.floor((totalSeconds - 1) / 3600);
-  //           const newMinutes = Math.floor(((totalSeconds - 1) % 3600) / 60);
-  //           const newSeconds = (totalSeconds - 1) % 60;
-
-  //           return {
-  //             hours: newHours,
-  //             minutes: newMinutes,
-  //             seconds: newSeconds,
-  //           };
-  //         });
-  //       }, 1000);
-  //       setIsRunning(true);
-
-  //       // Update the Supabase table when starting the timer
-  //       const { data, error } = await supabase
-  //         .from("timerState")
-  //         .update({ isRunning: 1 }) // Set isRunning to 1 when starting
-  //         .eq("id", 1); // Match the row with id = 1
-
-  //       if (error) {
-  //         throw new Error(
-  //           error.message || "Error updating timer state (START)"
-  //         );
-  //       }
-
-  //       console.log("Timer state updated to START in Supabase:", data);
-  //     }
-  //   } catch (error) {
-  //     console.error(error.message);
-  //   }
-  // };
-
-  // const handleTimeChange = (e) => {
-  //   const { name, value } = e.target;
-  //   setTime((prev) => ({
-  //     ...prev,
-  //     [name]: Math.max(0, Math.min(parseInt(value, 10) || 0, 59)),
-  //   }));
-  // };
 
   useEffect(() => {
     const fetchCandidates = async () => {
@@ -363,47 +274,7 @@ function Home() {
       <div className="homeContainer">
         <div className="timer">
           <div className="timer1">
-            {/* <TextField
-              label="Days"
-              type="number"
-              name="days"
-              value={time.days}
-              onChange={handleTimeChange}
-              InputProps={{ inputProps: { min: 0, max: 365 } }}
-              sx={{ width: "80px", marginRight: "10px" }}
-              disabled={isRunning}
-            />
-
-            <TextField
-              label="Hours"
-              type="number"
-              name="hours"
-              value={time.hours}
-              onChange={handleTimeChange}
-              InputProps={{ inputProps: { min: 0, max: 23 } }}
-              sx={{ width: "80px", marginRight: "10px" }}
-              disabled={isRunning}
-            />
-            <TextField
-              label="Minutes"
-              type="number"
-              name="minutes"
-              value={time.minutes}
-              onChange={handleTimeChange}
-              InputProps={{ inputProps: { min: 0, max: 59 } }}
-              sx={{ width: "80px", marginRight: "10px" }}
-              disabled={isRunning}
-            />
-            <TextField
-              label="Seconds"
-              type="number"
-              name="seconds"
-              value={time.seconds}
-              onChange={handleTimeChange}
-              InputProps={{ inputProps: { min: 0, max: 59 } }}
-              sx={{ width: "80px" }}
-              disabled={isRunning}
-            /> */}
+            
           </div>
         </div>
 
@@ -496,17 +367,18 @@ function Home() {
             <div className="chart22">
               <form ref={form} onSubmit={sendEmail}>
               <div>
-                    <TextField
-                      sx={{ width: "30ch" }}
-                      label="Email"
-                      type="email"
-                      name="student_email"
-                      id="outlined-size-small"
-                      size="small"
-                      required
-                      autoComplete="off"
-                    //   value={"LC STUDENT ELECTION"}
-                    />
+              <TextField
+  disabled
+  sx={{ width: "30ch" }}
+  label="To: Students"
+  type="text"
+  id="outlined-size-small"
+  size="small"
+  value={allEmails.join(", ") || "No emails found"}
+  autoComplete="off"
+/>
+
+
                   </div>
                   <div>
                     <TextField

@@ -189,7 +189,7 @@ function Four() {
       return;
     }
 
-    if (!userToDelete.id || !userToDelete.auth_id) {
+    if (!userToDelete.id ) {
       console.error(
         "Invalid user data: missing user ID or auth ID",
         userToDelete
@@ -218,20 +218,9 @@ function Four() {
     }
 
     // Step 2: Delete from Supabase Auth using the `auth_id`
-    const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(
-      userToDelete.auth_id
-    );
 
-    if (deleteAuthError) {
-      console.error(
-        "Error deleting user from authentication:",
-        deleteAuthError.message
-      );
-      alert(
-        "Failed to delete user from authentication: " + deleteAuthError.message
-      );
-      return;
-    }
+
+    
 
     // Update the UI by removing the user from the displayed list
     const updatedUsers = users[course].filter((_, i) => i !== index);
