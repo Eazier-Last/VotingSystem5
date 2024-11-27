@@ -1,30 +1,17 @@
 import React, { useState } from "react";
 import "../App.css";
-import { supabase } from "./client"; // Ensure this points to your Supabase client configuration
 import "./Modals/Modals.css";
-import InputLabel from "@mui/material/InputLabel";
-// import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
-// import Select from "@mui/material/Select";
 import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
-// import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import Button from "@mui/material/Button";
-// import CloseIcon from "@mui/icons-material/Close";
-// import Box from "@mui/material/Box";
+import FormControl from "@mui/material/FormControl";
+import InputAdornment from "@mui/material/InputAdornment";
 import IconButton from "@mui/material/IconButton";
 import OutlinedInput from "@mui/material/OutlinedInput";
-// import InputLabel from "@mui/material/InputLabel";
-import InputAdornment from "@mui/material/InputAdornment";
-// import FormControl from "@mui/material/FormControl";
-// import TextField from "@mui/material/TextField";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import logo from "./LCSC.png";
 import "./Modals/login.css";
-// import Button from "@mui/material/Button";
-// import CloseIcon from "@mui/icons-material/Close";
-// import MenuItem from "@mui/material/MenuItem";
 
 function Login({ setAuthType }) {
   const [studentNumber, setStudentNumber] = useState("");
@@ -34,39 +21,28 @@ function Login({ setAuthType }) {
 
   const handleClickShowPassword = () => setShowPassword((show) => !show);
 
-  const handleLogin = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault();
     setError("");
-  
+
+    // Simple check for studentNumber and password (no need for Supabase authentication)
     if (studentNumber === "admin" && password === "password") {
       setAuthType("admin");
       localStorage.setItem("authType", "admin");
       return;
     }
-  
-    try {
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: `${studentNumber}@lc.com`, 
-        password,
-      });
-  
-      if (authError) {
-        throw authError;
-      }
-  
+
+    // Check if studentNumber exists in your mock user data or simply allow access
+    if (studentNumber && password) {
       setAuthType("user");
       localStorage.setItem("authType", "user");
-    } catch (error) {
-      console.error("Error logging in:", error.message);
+    } else {
       setError("Invalid login credentials. Please try again.");
     }
   };
-  
-  
 
   return (
     <div>
-      <div></div>
       <div className="modal loginModal">
         <div className="modalContent login">
           <div>
@@ -94,15 +70,12 @@ function Login({ setAuthType }) {
                     required
                     value={studentNumber}
                     onChange={(e) => setStudentNumber(e.target.value)}
-                    
                   />
                 </div>
               </Box>
             </div>
             <FormControl sx={{ m: 1, width: "50ch" }} variant="outlined">
-              <InputLabel htmlFor="outlined-adornment-password">
-                Password
-              </InputLabel>
+              {/* <InputLabel htmlFor="outlined-adornment-password">Password</InputLabel> */}
               <OutlinedInput
                 id="outlined-adornment-password"
                 type={showPassword ? "text" : "password"}
@@ -140,8 +113,6 @@ function Login({ setAuthType }) {
         </div>
       </div>
     </div>
-
-  
   );
 }
 
